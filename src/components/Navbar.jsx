@@ -3,6 +3,7 @@ import Logo from "./Logo.jsx";
 import Button from "./Button.jsx";
 import Icon from "./Icon.jsx";
 import menuIcon from "../assets/menu.svg";
+import { Link } from "react-router-dom";
 
 const links = [
   { href: "#why-velto", label: "Why Velto" },
@@ -33,18 +34,29 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-6 lg:flex">
-          <Button variant="ghost" size="sm" inert className="px-0 text-[13px] font-medium">
-            Sign In
-          </Button>
-          <Button variant="primary" size="sm" inert showArrow>
-            Get Started
-          </Button>
+          
+            <Button inert showArrow variant="ghost" size="sm" className="px-0 text-[13px] font-medium">
+              <Link to="/login">
+              Log In
+              </Link>
+            </Button >
+          
+          
+            <Button variant="primary" size="sm" inert showArrow>
+              <Link to="/login">
+                Get Started
+              </Link>
+            </Button>
         </div>
 
         <div className="flex items-center gap-[22px] lg:hidden">
-          <Button variant="ghost" size="sm" inert className="h-auto px-0 text-[12px] font-normal">
-            Sign In
-          </Button>
+          
+            <Button showArrow variant="ghost" size="sm" className="h-auto px-0 text-[12px] font-normal">
+              <Link to="/login">
+              Sign In
+              </Link>
+            </Button>
+         
           <button
             type="button"
             className="size-[22px] overflow-hidden"

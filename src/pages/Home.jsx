@@ -7,6 +7,7 @@ import HowItWorks from "../components/HowItWorks.jsx";
 import Security from "../components/Security.jsx";
 import FinalCta from "../components/FinalCta.jsx";
 import Footer from "../components/Footer.jsx";
+import { Link } from "react-router-dom";
 
 function Home() {
   return (

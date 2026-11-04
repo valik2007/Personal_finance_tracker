@@ -3,6 +3,7 @@ import Icon from "./Icon.jsx";
 import signal from "../assets/signal.svg";
 import arrowRight from "../assets/arrow-right.svg";
 import separator from "../assets/separator.svg";
+import { Link } from "react-router-dom";
 
 export default function Hero() {
   return (
@@ -31,12 +32,20 @@ export default function Hero() {
       </p>
 
       <div className="flex w-full flex-col gap-2.5 lg:w-auto lg:flex-row lg:gap-3">
-        <Button inert showArrow className="w-full lg:w-auto">
-          Get Started — it’s free
-        </Button>
-        <Button variant="secondary" inert className="w-full lg:w-auto">
-          Sign In
-        </Button>
+        
+          <Button inert showArrow className="w-full lg:w-auto">
+            <Link to="/login">  
+            Get Started — it’s free
+            </Link>
+          </Button>
+        
+        
+          <Button variant="secondary" inert className="w-full lg:w-auto">
+            <Link to="/login">
+            Log In
+            </Link>
+          </Button>
+
       </div>
 
       <div className="flex items-center gap-[18px] text-[11px] text-subtle">

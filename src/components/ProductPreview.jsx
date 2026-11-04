@@ -18,10 +18,6 @@ import expenseLine from "../assets/expense-line.svg";
 import incomeLine from "../assets/income-line.svg";
 import selectedPoint from "../assets/selected-point.svg";
 import ellipsis from "../assets/ellipsis.svg";
-import donutTrack from "../assets/donut-track.svg";
-import donutHousing from "../assets/donut-housing.svg";
-import donutFood from "../assets/donut-food.svg";
-import donutShopping from "../assets/donut-shopping.svg";
 import markerHousing from "../assets/marker-housing.svg";
 import markerFood from "../assets/marker-food.svg";
 import markerOther from "../assets/marker-other.svg";
@@ -82,6 +78,20 @@ const budgets = [
   { name: "Shopping", values: "$340 / $500", width: "68%" },
   { name: "Transport", values: "$180 / $300", width: "60%" },
 ];
+
+const spendingSegments = [
+  { amount: 1500, color: "#67E8B0" },
+  { amount: 620, color: "#398468" },
+  { amount: 1000.8, color: "#51665C" },
+].map((segment, index, segments) => ({
+  ...segment,
+  offset: segments
+    .slice(0, index)
+    .reduce((total, previousSegment) => total + previousSegment.amount, 0),
+}));
+const totalSpent = spendingSegments.reduce((total, segment) => total + segment.amount, 0);
+const donutRadius = 69.54;
+const donutCircumference = 2 * Math.PI * donutRadius;
 
 function CashFlowChart() {
   return (
@@ -276,10 +286,36 @@ export default function ProductPreview() {
                   </span>
                 </div>
                 <div className="relative mx-auto size-[152px]">
-                  <img src={donutTrack} alt="" className="absolute inset-0 block max-w-none" />
-                  <img src={donutHousing} alt="" className="absolute inset-0 block max-w-none" />
-                  <img src={donutFood} alt="" className="absolute inset-0 block max-w-none" />
-                  <img src={donutShopping} alt="" className="absolute inset-0 block max-w-none" />
+                  <svg
+                    viewBox="0 0 152 152"
+                    className="absolute inset-0 size-full -rotate-90"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="76"
+                      cy="76"
+                      r={donutRadius}
+                      fill="none"
+                      stroke="#202628"
+                      strokeWidth="12.92"
+                    />
+                    {spendingSegments.map((segment, index) => {
+                      const length = (segment.amount / totalSpent) * donutCircumference;
+                      return (
+                        <circle
+                          key={index}
+                          cx="76"
+                          cy="76"
+                          r={donutRadius}
+                          fill="none"
+                          stroke={segment.color}
+                          strokeWidth="12.92"
+                          strokeDasharray={`${length} ${donutCircumference}`}
+                          strokeDashoffset={-segment.offset}
+                        />
+                      );
+                    })}
+                  </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                     <p className="text-[21px] font-semibold tracking-[-0.7px]">$3,120.80</p>
                     <p className="text-[10px] text-muted">Total spent</p>

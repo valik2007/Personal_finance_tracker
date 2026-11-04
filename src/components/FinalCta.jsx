@@ -1,5 +1,6 @@
 import Button from "./Button.jsx";
 import SectionEyebrow from "./SectionEyebrow.jsx";
+import { Link } from "react-router-dom";
 
 export default function FinalCta() {
   return (
@@ -14,8 +15,10 @@ export default function FinalCta() {
         <p className="text-[16px] text-muted">
           Make space for what matters. We’ll help with the numbers.
         </p>
-        <Button inert showArrow>
-          Get Started — it’s free
+        <Button showArrow>
+          <Link to="/login">
+            Get Started — it’s free
+          </Link>
         </Button>
         <p className="text-[11px] text-subtle">No credit card. No pressure. Just clarity.</p>
       </div>
