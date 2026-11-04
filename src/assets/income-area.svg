@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="688" height="137.5" viewBox="0 0 688 137.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path id="Income area" d="M0 137.5C43.7818 132.407 50.0364 97.7778 100.073 104.907C150.109 112.037 175.127 120.185 218.909 77.4074C262.691 34.6296 287.709 92.6852 331.491 59.0741C375.273 25.463 400.291 79.4445 444.073 40.7407C487.855 2.03704 506.618 66.2037 550.4 25.463C594.182 -15.2778 631.709 45.8333 688 0V137.5H0Z" fill="url(#paint0_linear_0_45)"/>
+<defs>
+<linearGradient id="paint0_linear_0_45" x1="0" y1="0" x2="0" y2="137.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#67E8B0" stop-opacity="0.156863"/>
+<stop offset="1" stop-color="#67E8B0" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>
