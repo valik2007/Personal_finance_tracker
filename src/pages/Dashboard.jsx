@@ -79,7 +79,7 @@ function Dashboard() {
 
   if (!user) return null;
 
-  const userName = user.email.split("@")[0];
+  const userName = user.fullName?.trim() || user.email.split("@")[0];
 
   return (
     <div className="flex min-h-screen bg-[#0c0f0d] text-gray-200 font-sans">
