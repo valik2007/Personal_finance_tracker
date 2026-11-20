@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Logo from "./Logo.jsx";
-import Button from "./Button.jsx";
 import Icon from "./Icon.jsx";
 import menuIcon from "../assets/menu.svg";
+import arrowUpRight from "../assets/arrow-up-right.svg";
 import { Link } from "react-router-dom";
 
 const links = [
@@ -34,29 +34,28 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-6 lg:flex">
-          
-            <Button inert showArrow variant="ghost" size="sm" className="px-0 text-[13px] font-medium">
-              <Link to="/login">
-              Log In
-              </Link>
-            </Button >
-          
-          
-            <Button variant="primary" size="sm" inert showArrow>
-              <Link to="/login">
-                Get Started
-              </Link>
-            </Button>
+          <Link
+            to="/login"
+            className="text-[13px] font-medium text-ink hover:text-emerald"
+          >
+            Log In
+          </Link>
+          <Link
+            to="/login?mode=signup"
+            className="inline-flex h-10 items-center justify-center gap-2.5 rounded-control bg-emerald px-4 text-[13px] font-semibold text-emerald-ink hover:bg-[#7aedba]"
+          >
+            Get Started
+            <Icon src={arrowUpRight} alt="" />
+          </Link>
         </div>
 
         <div className="flex items-center gap-[22px] lg:hidden">
-          
-            <Button showArrow variant="ghost" size="sm" className="h-auto px-0 text-[12px] font-normal">
-              <Link to="/login">
-              Sign In
-              </Link>
-            </Button>
-         
+          <Link
+            to="/login"
+            className="text-[12px] font-normal text-ink hover:text-emerald"
+          >
+            Sign In
+          </Link>
           <button
             type="button"
             className="size-[22px] overflow-hidden"
@@ -81,6 +80,14 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            to="/login?mode=signup"
+            className="inline-flex h-10 items-center justify-center gap-2.5 rounded-control bg-emerald px-4 text-[13px] font-semibold text-emerald-ink hover:bg-[#7aedba]"
+            onClick={() => setOpen(false)}
+          >
+            Get Started
+            <Icon src={arrowUpRight} alt="" />
+          </Link>
         </div>
       ) : null}
     </header>

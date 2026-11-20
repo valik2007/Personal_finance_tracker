@@ -1,4 +1,3 @@
-import Button from "./Button.jsx";
 import Icon from "./Icon.jsx";
 import signal from "../assets/signal.svg";
 import arrowRight from "../assets/arrow-right.svg";
@@ -32,20 +31,19 @@ export default function Hero() {
       </p>
 
       <div className="flex w-full flex-col gap-2.5 lg:w-auto lg:flex-row lg:gap-3">
-        
-          <Button inert showArrow className="w-full lg:w-auto">
-            <Link to="/login">  
-            Get Started — it’s free
-            </Link>
-          </Button>
-        
-        
-          <Button variant="secondary" inert className="w-full lg:w-auto">
-            <Link to="/login">
-            Log In
-            </Link>
-          </Button>
-
+        <Link
+          to="/login?mode=signup"
+          className="inline-flex h-[50px] w-full items-center justify-center gap-2.5 rounded-control bg-emerald px-[22px] text-[14px] font-semibold text-emerald-ink hover:bg-[#7aedba] lg:w-auto"
+        >
+          Get Started — it’s free
+          <Icon src={arrowRight} alt="" />
+        </Link>
+        <Link
+          to="/login"
+          className="inline-flex h-[50px] w-full items-center justify-center gap-2.5 rounded-control border border-border bg-elevated px-[22px] text-[14px] font-semibold text-ink hover:bg-surface lg:w-auto"
+        >
+          Log In
+        </Link>
       </div>
 
       <div className="flex items-center gap-[18px] text-[11px] text-subtle">

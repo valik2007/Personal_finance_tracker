@@ -39,7 +39,7 @@ export default function Features() {
               </span>
             </div>
             <p className="flex-1 text-[11px]">Total balance</p>
-            <p className="text-[12px]">$24,680.50</p>
+            <p className="text-[10px] text-muted">From your records</p>
           </div>
           <div className="flex items-center gap-[5px]">
             <span className="size-1 overflow-hidden">
@@ -55,16 +55,15 @@ export default function Features() {
           description="Give every category a little intention. Flexible budgets help you spend with confidence."
         >
           <div className="flex justify-between text-[11px]">
-            <p>Food & groceries</p>
-            <p className="text-[10px] text-emerald">On track</p>
+            <p>Monthly spending</p>
+            <p className="text-[10px] text-emerald">By category</p>
           </div>
           <p className="text-[27px] font-medium tracking-[-1px]">
-            $620 <span className="text-[12px] font-normal text-subtle">/ $800</span>
+            Set your own limits
           </p>
-          <div className="h-1.5 overflow-hidden rounded-[5px] bg-track">
-            <div className="h-1.5 w-[77.5%] rounded-[5px] bg-emerald" />
-          </div>
-          <p className="text-[10px] text-muted">$180 left to spend this month</p>
+          <p className="text-[10px] text-muted">
+            Compare your actual expenses with each saved budget.
+          </p>
         </FeatureCard>
 
         <FeatureCard
@@ -78,9 +77,9 @@ export default function Features() {
             </span>
             <p className="text-[10px] text-emerald">YOUR MONTH, A LITTLE SMARTER</p>
           </div>
-          <p className="text-[27px] font-medium tracking-[-1px]">4.1% less</p>
+          <p className="text-[27px] font-medium tracking-[-1px]">Month to month</p>
           <p className="text-[12px] leading-[1.6] text-muted">
-            You spent less than last month. Small shifts. Real progress.
+            Compare actual income and expense patterns from your saved transactions.
           </p>
         </FeatureCard>
       </div>

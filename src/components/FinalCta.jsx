@@ -1,6 +1,7 @@
-import Button from "./Button.jsx";
 import SectionEyebrow from "./SectionEyebrow.jsx";
 import { Link } from "react-router-dom";
+import Icon from "./Icon.jsx";
+import arrowUpRight from "../assets/arrow-up-right.svg";
 
 export default function FinalCta() {
   return (
@@ -15,11 +16,13 @@ export default function FinalCta() {
         <p className="text-[16px] text-muted">
           Make space for what matters. We’ll help with the numbers.
         </p>
-        <Button showArrow>
-          <Link to="/login">
-            Get Started — it’s free
-          </Link>
-        </Button>
+        <Link
+          to="/login?mode=signup"
+          className="inline-flex h-[50px] items-center justify-center gap-2.5 rounded-control bg-emerald px-[22px] text-[14px] font-semibold text-emerald-ink hover:bg-[#7aedba]"
+        >
+          Get Started — it’s free
+          <Icon src={arrowUpRight} alt="" />
+        </Link>
         <p className="text-[11px] text-subtle">No credit card. No pressure. Just clarity.</p>
       </div>
     </section>

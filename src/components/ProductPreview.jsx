@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Logo from "./Logo.jsx";
 import Icon from "./Icon.jsx";
 import SectionEyebrow from "./SectionEyebrow.jsx";
@@ -10,13 +11,8 @@ import calendarDays from "../assets/calendar-days.svg";
 import wallet from "../assets/wallet.svg";
 import arrowDownLeft from "../assets/arrow-down-left.svg";
 import arrowUpRightMuted from "../assets/arrow-up-right-muted.svg";
-import chevronDown from "../assets/chevron-down.svg";
 import signal from "../assets/signal.svg";
 import markerMuted from "../assets/marker-muted.svg";
-import incomeArea from "../assets/income-area.svg";
-import expenseLine from "../assets/expense-line.svg";
-import incomeLine from "../assets/income-line.svg";
-import selectedPoint from "../assets/selected-point.svg";
 import ellipsis from "../assets/ellipsis.svg";
 import markerHousing from "../assets/marker-housing.svg";
 import markerFood from "../assets/marker-food.svg";
@@ -24,89 +20,96 @@ import markerOther from "../assets/marker-other.svg";
 import briefcase from "../assets/briefcase.svg";
 import shoppingBasket from "../assets/shopping-basket.svg";
 import music from "../assets/music.svg";
+import {
+  DEFAULT_CURRENCY,
+  formatCurrency,
+  getTransactionCurrency,
+  sumByCurrency,
+} from "../currency.js";
+import {
+  getCashFlowSeries,
+  getMonthComparison,
+  getPercentChange,
+  getSpendingByCategory,
+} from "../financeMetrics.js";
 
-const summary = [
-  {
-    label: "Total balance",
-    amount: "$24,680.50",
-    note: "↗ 12.8% vs. last month",
-    icon: wallet,
-    highlight: true,
-  },
-  {
-    label: "Income",
-    amount: "$8,250.00",
-    note: "↗ 8.2% vs. last month",
-    icon: arrowDownLeft,
-  },
-  {
-    label: "Expenses",
-    amount: "$3,120.80",
-    note: "↘ 4.1% vs. last month",
-    icon: arrowUpRightMuted,
-  },
-];
-
-const transactions = [
-  {
-    name: "Linear Studio",
-    category: "Salary",
-    date: "Jun 24, 2026",
-    amount: "+$6,500.00",
-    positive: true,
-    icon: briefcase,
-    iconBg: "bg-emerald-soft",
-  },
-  {
-    name: "Whole Foods",
-    category: "Groceries",
-    date: "Jun 24, 2026",
-    amount: "−$86.42",
-    icon: shoppingBasket,
-  },
-  {
-    name: "Spotify Premium",
-    category: "Subscriptions",
-    date: "Jun 23, 2026",
-    amount: "−$10.99",
-    icon: music,
-  },
-];
-
-const budgets = [
-  { name: "Food & groceries", values: "$620 / $800", width: "77.5%" },
-  { name: "Shopping", values: "$340 / $500", width: "68%" },
-  { name: "Transport", values: "$180 / $300", width: "60%" },
-];
-
-const spendingSegments = [
-  { amount: 1500, color: "#67E8B0" },
-  { amount: 620, color: "#398468" },
-  { amount: 1000.8, color: "#51665C" },
-].map((segment, index, segments) => ({
-  ...segment,
-  offset: segments
-    .slice(0, index)
-    .reduce((total, previousSegment) => total + previousSegment.amount, 0),
-}));
-const totalSpent = spendingSegments.reduce((total, segment) => total + segment.amount, 0);
+const chartColors = ["#67E8B0", "#398468", "#51665C", "#A3C9B6", "#2B6D55"];
 const donutRadius = 69.54;
 const donutCircumference = 2 * Math.PI * donutRadius;
 
-function CashFlowChart() {
+function loadPreviewData() {
+  const savedUser =
+    localStorage.getItem("currentUser") ||
+    sessionStorage.getItem("currentUser");
+  const user = savedUser ? JSON.parse(savedUser) : null;
+  return {
+    userName: user?.fullName?.trim() || "",
+    transactions: user?.email
+      ? JSON.parse(localStorage.getItem(`transactions_${user.email}`) || "[]")
+      : [],
+    budgets: user?.email
+      ? JSON.parse(localStorage.getItem(`budgets_${user.email}`) || "[]")
+      : [],
+  };
+}
+
+function getComparisonNote(current, previous) {
+  const change = getPercentChange(current, previous);
+  if (change === null) {
+    return current === 0 ? "No previous-month baseline" : "New this month";
+  }
+  if (change === 0) return "No change vs. last month";
+  return `${change > 0 ? "↗" : "↘"} ${Math.abs(change).toFixed(1)}% vs. last month`;
+}
+
+function getCashFlowPath(points, key, maxAmount, closeToBaseline = false) {
+  const pointsPath = points
+    .map((point, index) => {
+      const x = (index / Math.max(points.length - 1, 1)) * 688;
+      const y = 142 - (point[key] / maxAmount) * 130;
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+  return closeToBaseline ? `${pointsPath} L 688 150 L 0 150 Z` : pointsPath;
+}
+
+function formatAxisValue(value, currency) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function CashFlowChart({ points, currency, currencies, onCurrencyChange }) {
+  const dataMaxAmount = Math.max(
+    0,
+    ...points.flatMap(({ income, expenses }) => [income, expenses])
+  );
+  const maxAmount = Math.max(1, dataMaxAmount);
+  const incomePath = getCashFlowPath(points, "income", maxAmount);
+  const expensesPath = getCashFlowPath(points, "expenses", maxAmount);
+  const incomeArea = getCashFlowPath(points, "income", maxAmount, true);
+  const latest = points[points.length - 1];
+
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-5 rounded-card border border-border bg-surface p-[18px] lg:p-[22px]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[17px] text-ink">Cash flow</p>
-          <p className="mt-1.5 text-[12px] text-muted">Your money, in perspective.</p>
+          <p className="mt-1.5 text-[12px] text-muted">Monthly income and expenses from your transactions.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5">
-          <p className="text-[11px]">This month</p>
-          <span className="size-3 overflow-hidden">
-            <Icon src={chevronDown} alt="" />
-          </span>
-        </div>
+        <select
+          aria-label="Cash flow currency"
+          value={currency}
+          onChange={(event) => onCurrencyChange(event.target.value)}
+          className="max-w-24 rounded-lg border border-border bg-elevated px-2.5 py-1.5 text-[11px] text-ink"
+        >
+          {currencies.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
       </div>
       <div className="flex gap-[18px]">
         <div className="flex items-center gap-1.5">
@@ -124,10 +127,10 @@ function CashFlowChart() {
       </div>
       <div className="flex gap-3">
         <div className="flex h-[150px] w-8 flex-col justify-between text-[10px] text-subtle">
-          <p>$9k</p>
-          <p>$6k</p>
-          <p>$3k</p>
-          <p>$0</p>
+          <p>{formatAxisValue(dataMaxAmount, currency)}</p>
+          <p>{formatAxisValue(dataMaxAmount * 0.67, currency)}</p>
+          <p>{formatAxisValue(dataMaxAmount * 0.33, currency)}</p>
+          <p>{formatAxisValue(0, currency)}</p>
         </div>
         <div className="relative h-[150px] min-w-0 flex-1">
           <div className="flex h-full flex-col justify-between">
@@ -136,38 +139,172 @@ function CashFlowChart() {
             <div className="h-px bg-border" />
             <div className="h-px bg-border" />
           </div>
-          <div className="absolute top-[12.5px] right-0 left-0 h-[137.5px] overflow-hidden">
-            <img src={incomeArea} alt="" className="block h-full w-full max-w-none" />
-          </div>
-          <div className="absolute top-[98px] right-0 left-0 h-[52px] overflow-hidden">
-            <img src={expenseLine} alt="" className="block h-full w-full max-w-none" />
-          </div>
-          <div className="absolute top-[12.5px] right-0 left-0 h-[137.5px] overflow-hidden">
-            <img src={incomeLine} alt="" className="block h-full w-full max-w-none" />
-          </div>
-          <div className="absolute top-[9px] right-0 size-[7px] overflow-hidden">
-            <Icon src={selectedPoint} alt="" />
-          </div>
-          <div className="absolute top-[22px] right-[18px] hidden flex-col gap-1 rounded-lg border border-border bg-elevated p-2.5 lg:flex">
-            <p className="text-[10px] text-muted">JUN 30, 2026</p>
-            <p className="text-[12px] font-semibold whitespace-pre text-emerald">
-              Income  $8,250.00
-            </p>
-          </div>
+          <svg
+            className="absolute inset-0 size-full"
+            viewBox="0 0 688 150"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`Income and expenses over the last six months in ${currency}`}
+          >
+            <path d={incomeArea} fill="#67E8B0" fillOpacity="0.12" />
+            <path d={expensesPath} fill="none" stroke="#697571" strokeWidth="2" />
+            <path d={incomePath} fill="none" stroke="#67E8B0" strokeWidth="2.5" />
+            <circle
+              cx="688"
+              cy={142 - (latest.income / maxAmount) * 130}
+              r="4"
+              fill="#67E8B0"
+            />
+          </svg>
         </div>
       </div>
       <div className="flex justify-between pl-11 text-[10px] text-subtle">
-        <p>Jun 1</p>
-        <p>Jun 7</p>
-        <p>Jun 14</p>
-        <p className="hidden sm:block">Jun 21</p>
-        <p>Jun 30</p>
+        {points.map((point) => (
+          <p key={`${point.label}-${point.income}-${point.expenses}`}>{point.label}</p>
+        ))}
       </div>
+      <p className="text-center text-[10px] text-subtle">
+        Latest month: {formatCurrency(latest.income, currency)} income ·{" "}
+        {formatCurrency(latest.expenses, currency)} expenses
+      </p>
     </div>
   );
 }
 
 export default function ProductPreview() {
+  const [preview] = useState(loadPreviewData);
+  const [now] = useState(() => new Date());
+  const { transactions, budgets } = preview;
+  const currencies = [
+    ...new Set([
+      DEFAULT_CURRENCY,
+      ...transactions.map(getTransactionCurrency),
+      ...budgets.map(getTransactionCurrency),
+    ]),
+  ].sort();
+  const transactionCurrencies = [
+    ...new Set(transactions.map(getTransactionCurrency)),
+  ].sort();
+  const summaryCurrencies = transactionCurrencies.length
+    ? transactionCurrencies
+    : [DEFAULT_CURRENCY];
+  const [cashFlowCurrency, setCashFlowCurrency] = useState(
+    summaryCurrencies[0] || DEFAULT_CURRENCY
+  );
+  const [spendingCurrency, setSpendingCurrency] = useState(
+    summaryCurrencies[0] || DEFAULT_CURRENCY
+  );
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthComparisons = Object.fromEntries(
+    summaryCurrencies.map((currency) => [
+      currency,
+      getMonthComparison(transactions, currency, now),
+    ])
+  );
+  const incomeByCurrency = sumByCurrency(
+    transactions,
+    (transaction) => transaction.type === "income"
+  );
+  const expensesByCurrency = sumByCurrency(
+    transactions,
+    (transaction) => transaction.type === "expense"
+  );
+  const balanceByCurrency = Object.fromEntries(
+    summaryCurrencies.map((currency) => [
+      currency,
+      (incomeByCurrency[currency] || 0) - (expensesByCurrency[currency] || 0),
+    ])
+  );
+  const summary = [
+    {
+      label: "Total balance",
+      icon: wallet,
+      highlight: true,
+      values: summaryCurrencies.map((currency) => ({
+        currency,
+        amount: balanceByCurrency[currency] || 0,
+        note: getComparisonNote(
+          monthComparisons[currency].balance.current,
+          monthComparisons[currency].balance.previous
+        ),
+      })),
+    },
+    {
+      label: "Income",
+      icon: arrowDownLeft,
+      values: summaryCurrencies.map((currency) => ({
+        currency,
+        amount: monthComparisons[currency].current.income,
+        note: getComparisonNote(
+          monthComparisons[currency].current.income,
+          monthComparisons[currency].previous.income
+        ),
+      })),
+    },
+    {
+      label: "Expenses",
+      icon: arrowUpRightMuted,
+      values: summaryCurrencies.map((currency) => ({
+        currency,
+        amount: monthComparisons[currency].current.expenses,
+        note: getComparisonNote(
+          monthComparisons[currency].current.expenses,
+          monthComparisons[currency].previous.expenses
+        ),
+      })),
+    },
+  ];
+  const cashFlowPoints = getCashFlowSeries(transactions, now, cashFlowCurrency);
+  const spendingByCategory = getSpendingByCategory(
+    transactions,
+    currentMonth,
+    spendingCurrency,
+    "expense",
+    now
+  );
+  const spendingCategories = Object.entries(spendingByCategory)
+    .map(([label, amount], index) => ({
+      label,
+      amount,
+      color: chartColors[index % chartColors.length],
+      icon:
+        /housing/i.test(label)
+          ? markerHousing
+          : /food|grocer/i.test(label)
+            ? markerFood
+            : markerOther,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+  const totalSpent = spendingCategories.reduce(
+    (total, category) => total + category.amount,
+    0
+  );
+  const spendingSegments = spendingCategories.reduce((segments, category) => {
+    const previous = segments[segments.length - 1];
+    const length = totalSpent
+      ? (category.amount / totalSpent) * donutCircumference
+      : 0;
+    return [
+      ...segments,
+      {
+        ...category,
+        length,
+        offset: previous ? previous.offset + previous.length : 0,
+      },
+    ];
+  }, []);
+  const recentTransactions = transactions.slice(0, 3);
+  const monthRange = `${now.toLocaleDateString("en-US", { month: "short" })} 1 – ${now.getDate()}, ${now.getFullYear()}`;
+  const displayName = preview.userName || "Personal account";
+  const initials = preview.userName
+    ? preview.userName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase()
+    : "V";
+
   return (
     <section className="flex flex-col gap-[18px] px-5 pb-9 lg:px-20">
       <div className="flex items-center justify-between">
@@ -218,11 +355,11 @@ export default function ProductPreview() {
             </div>
             <div className="h-px bg-border" />
             <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-full bg-track text-[11px]">
-                JC
+            <div className="flex size-8 items-center justify-center rounded-full bg-track text-[11px]">
+              {initials}
               </div>
               <div>
-                <p className="text-[12px]">Jamie Chen</p>
+              <p className="text-[12px]">{displayName}</p>
                 <p className="text-[10px] text-muted">Personal account</p>
               </div>
             </div>
@@ -237,13 +374,17 @@ export default function ProductPreview() {
           <div className="flex flex-col gap-[18px] p-3.5 lg:p-[26px]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[23px] tracking-[-0.8px]">Good morning, Jamie ↗</p>
+                <p className="text-[23px] tracking-[-0.8px]">
+                  {preview.userName ? `Good morning, ${preview.userName} ↗` : "Your finances, at a glance"}
+                </p>
                 <p className="mt-1.5 text-[12px] text-muted">
-                  Here’s where your money stands today.
+                  {preview.userName
+                    ? "Here’s where your money stands today."
+                    : "Sign in to see your transactions, spending, and budgets here."}
                 </p>
               </div>
               <div className="hidden h-10 items-center gap-2.5 rounded-control border border-border bg-elevated px-4 lg:flex">
-                <p className="text-[13px] font-semibold">Jun 1 – 30, 2026</p>
+                <p className="text-[13px] font-semibold">{monthRange}</p>
                 <span className="size-4 overflow-hidden">
                   <Icon src={calendarDays} alt="" />
                 </span>
@@ -268,22 +409,40 @@ export default function ProductPreview() {
                       <Icon src={card.icon} alt="" />
                     </span>
                   </div>
-                  <p className="text-[25px] tracking-[-1px]">{card.amount}</p>
-                  <p className={`text-[11px] ${card.highlight ? "text-emerald" : "text-muted"}`}>
-                    {card.note}
-                  </p>
+                  {card.values.map((value) => (
+                    <div key={value.currency}>
+                      <p className="text-[25px] tracking-[-1px]">
+                        {formatCurrency(value.amount, value.currency)}
+                      </p>
+                      <p className={`mt-1 text-[10px] ${card.highlight ? "text-emerald" : "text-muted"}`}>
+                        {value.currency} · {value.note}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
 
             <div className="flex flex-col gap-[18px] lg:flex-row">
-              <CashFlowChart />
+              <CashFlowChart
+                points={cashFlowPoints}
+                currency={cashFlowCurrency}
+                currencies={currencies}
+                onCurrencyChange={setCashFlowCurrency}
+              />
               <div className="hidden w-[260px] shrink-0 flex-col gap-[19px] rounded-card border border-border bg-surface p-[22px] lg:flex">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <p className="text-[17px]">Spending breakdown</p>
-                  <span className="size-[18px] overflow-hidden">
-                    <Icon src={ellipsis} alt="" />
-                  </span>
+                  <select
+                    aria-label="Spending breakdown currency"
+                    value={spendingCurrency}
+                    onChange={(event) => setSpendingCurrency(event.target.value)}
+                    className="max-w-20 rounded-lg border border-border bg-elevated px-2 py-1 text-[10px] text-ink"
+                  >
+                    {currencies.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="relative mx-auto size-[152px]">
                   <svg
@@ -299,43 +458,48 @@ export default function ProductPreview() {
                       stroke="#202628"
                       strokeWidth="12.92"
                     />
-                    {spendingSegments.map((segment, index) => {
-                      const length = (segment.amount / totalSpent) * donutCircumference;
+                    {spendingSegments.map((segment) => {
                       return (
                         <circle
-                          key={index}
+                          key={segment.label}
                           cx="76"
                           cy="76"
                           r={donutRadius}
                           fill="none"
                           stroke={segment.color}
                           strokeWidth="12.92"
-                          strokeDasharray={`${length} ${donutCircumference}`}
+                          strokeDasharray={`${segment.length} ${donutCircumference - segment.length}`}
                           strokeDashoffset={-segment.offset}
                         />
                       );
                     })}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                    <p className="text-[21px] font-semibold tracking-[-0.7px]">$3,120.80</p>
-                    <p className="text-[10px] text-muted">Total spent</p>
+                    <p className="text-[18px] font-semibold tracking-[-0.7px]">
+                      {formatCurrency(totalSpent, spendingCurrency)}
+                    </p>
+                    <p className="text-[10px] text-muted">This month</p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2.5">
-                  {[
-                    [markerHousing, "Housing", "$1,500.00"],
-                    [markerFood, "Food & groceries", "$620.00"],
-                    [markerOther, "Other spending", "$1,000.80"],
-                  ].map(([icon, label, amount]) => (
-                    <div key={label} className="flex items-center gap-[7px]">
-                      <span className="size-[5px] overflow-hidden">
-                        <Icon src={icon} alt="" />
-                      </span>
-                      <p className="flex-1 text-[10px] text-muted">{label}</p>
-                      <p className="text-[10px]">{amount}</p>
-                    </div>
-                  ))}
-                </div>
+                {spendingCategories.length ? (
+                  <div className="flex flex-col gap-2.5">
+                    {spendingCategories.map((category) => (
+                      <div key={category.label} className="flex items-center gap-[7px]">
+                        <span className="size-[5px] overflow-hidden">
+                          <Icon src={category.icon} alt="" />
+                        </span>
+                        <p className="flex-1 truncate text-[10px] text-muted">{category.label}</p>
+                        <p className="text-[10px]">
+                          {formatCurrency(category.amount, spendingCurrency)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[11px] text-muted">
+                    No expenses recorded this month.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -351,35 +515,51 @@ export default function ProductPreview() {
                   <p className="w-[110px]">DATE</p>
                   <p className="w-[100px] text-right">AMOUNT</p>
                 </div>
-                {transactions.map((row) => (
+                {recentTransactions.map((transaction) => {
+                  const positive = transaction.type === "income";
+                  const icon = positive
+                    ? briefcase
+                    : /shop/i.test(transaction.category || "")
+                      ? shoppingBasket
+                      : music;
+                  return (
                   <div
-                    key={row.name}
+                    key={transaction.id}
                     className="flex items-center gap-3 border-b border-border py-3 last:border-b-0"
                   >
                     <div
-                      className={`flex size-[34px] items-center justify-center rounded-[10px] ${row.iconBg ?? "bg-elevated"}`}
+                      className={`flex size-[34px] items-center justify-center rounded-[10px] ${positive ? "bg-emerald-soft" : "bg-elevated"}`}
                     >
                       <span className="size-4 overflow-hidden">
-                        <Icon src={row.icon} alt="" />
+                        <Icon src={icon} alt="" />
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-medium">{row.name}</p>
+                      <p className="text-[12px] font-medium">{transaction.text}</p>
                       <p className="text-[11px] text-muted lg:hidden">
-                        {row.category} · {row.date}
+                        {transaction.category || "Other"} · {transaction.date || "Date unavailable"}
                       </p>
                     </div>
                     <p className="hidden w-[106px] text-[11px] text-muted lg:block">
-                      {row.category}
+                      {transaction.category || "Other"}
                     </p>
-                    <p className="hidden w-[98px] text-[11px] text-muted lg:block">{row.date}</p>
+                    <p className="hidden w-[98px] text-[11px] text-muted lg:block">
+                      {transaction.date || "Date unavailable"}
+                    </p>
                     <p
-                      className={`w-[90px] text-right text-[12px] lg:w-[100px] ${row.positive ? "text-emerald" : "text-ink"}`}
+                      className={`w-[90px] text-right text-[12px] lg:w-[100px] ${positive ? "text-emerald" : "text-ink"}`}
                     >
-                      {row.amount}
+                      {positive ? "+" : "−"}
+                      {formatCurrency(transaction.amount, getTransactionCurrency(transaction))}
                     </p>
                   </div>
-                ))}
+                  );
+                })}
+                {!recentTransactions.length && (
+                  <p className="py-7 text-center text-[11px] text-muted">
+                    No transactions yet.
+                  </p>
+                )}
               </div>
 
               <div className="w-full shrink-0 rounded-card border border-border bg-surface p-[18px] lg:w-[260px] lg:p-[22px]">
@@ -390,21 +570,53 @@ export default function ProductPreview() {
                   </span>
                 </div>
                 <p className="mb-[22px] text-[12px] leading-[1.5] text-muted">
-                  Looking good. You’re within all your budgets.
+                  Spending this month compared with your saved limits.
                 </p>
-                <div className="flex flex-col gap-[22px]">
-                  {budgets.map((budget) => (
-                    <div key={budget.name}>
-                      <div className="mb-2.5 flex justify-between text-[12px]">
-                        <p>{budget.name}</p>
-                        <p className="text-[11px] text-muted">{budget.values}</p>
-                      </div>
-                      <div className="h-[5px] overflow-hidden rounded bg-track">
-                        <div className="h-[5px] rounded bg-emerald" style={{ width: budget.width }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {budgets.length ? (
+                  <div className="flex flex-col gap-[22px]">
+                    {budgets.map((budget) => {
+                      const currency = getTransactionCurrency(budget);
+                      const spent =
+                        getSpendingByCategory(
+                          transactions,
+                          currentMonth,
+                          currency,
+                          "expense",
+                          now
+                        )[budget.category] || 0;
+                      const limit = Number(budget.limit) || 0;
+                      const progress = limit
+                        ? Math.min((spent / limit) * 100, 100)
+                        : 0;
+                      const overLimit = spent > limit;
+                      return (
+                        <div key={`${currency}-${budget.category}`}>
+                          <div className="mb-2.5 flex justify-between gap-2 text-[12px]">
+                            <p className="truncate">{budget.category} · {currency}</p>
+                            <p className="shrink-0 text-[11px] text-muted">
+                              {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
+                            </p>
+                          </div>
+                          <div className="h-[5px] overflow-hidden rounded bg-track">
+                            <div
+                              className={`h-[5px] rounded ${overLimit ? "bg-red-400" : "bg-emerald"}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          {overLimit && (
+                            <p className="mt-1 text-[10px] text-red-300">
+                              Over limit by {formatCurrency(spent - limit, currency)}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="py-5 text-center text-[11px] text-muted">
+                    No saved budgets yet.
+                  </p>
+                )}
               </div>
             </div>
           </div>

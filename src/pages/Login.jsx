@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "../components/Icon.jsx";
 import brandMark from "../assets/brand-mark.svg";
 import signal from "../assets/signal.svg";
@@ -69,16 +69,16 @@ function BrandStory() {
             <div className="-rotate-5">
               <div className="flex w-[324px] flex-col gap-[18px] rounded-[22px] border border-[#416451] bg-[#15231e] p-6 shadow-[0px_24px_64px_0px_rgba(0,0,0,0.31)]">
                 <div className="flex items-start justify-between">
-                  <p className="text-[11px] text-muted">Your total balance</p>
+                  <p className="text-[11px] text-muted">Your finances, in one view</p>
                   <Icon src={arrowUpRight} alt="" />
                 </div>
-                <p className="text-[35px] leading-none font-medium tracking-[-1.5px]">
-                  $24,680.50
+                <p className="text-[25px] leading-tight font-medium tracking-[-1px]">
+                  Income. Expenses. Goals.
                 </p>
                 <div className="flex items-end justify-between">
                   <div className="flex flex-col gap-[5px]">
-                    <p className="text-[12px] text-emerald">↗ 12.8%</p>
-                    <p className="text-[10px] text-subtle">vs. last month</p>
+                    <p className="text-[12px] text-emerald">Your real financial picture</p>
+                    <p className="text-[10px] text-subtle">Available after sign in</p>
                   </div>
                   <div className="flex h-[47px] items-end gap-[6px]">
                     {trendBars.map((height, index) => (
@@ -111,16 +111,30 @@ function BrandStory() {
 
 function Login() {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false); // переключатель вход/регистрация
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isSignUp = searchParams.get("mode") === "signup";
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("rememberedEmail") || "");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [agreed, setAgreed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setHelpOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [helpOpen]);
 
   const switchMode = () => {
-    setIsSignUp((current) => !current);
+    setSearchParams(isSignUp ? {} : { mode: "signup" });
     setError("");
     setAgreed(false);
     setShowPassword(false);
@@ -129,10 +143,11 @@ function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Валидация полей
     if (isSignUp) {
-      if (!fullName.trim() || !email || !password) {
+      if (!fullName.trim() || !normalizedEmail || !password) {
         setError("Please fill in all fields.");
         return;
       }
@@ -156,30 +171,45 @@ function Login() {
 
     if (isSignUp) {
       // Логика регистрации
-      const userExists = savedUsers.some((u) => u.email === email);
+      const userExists = savedUsers.some(
+        (u) => u.email.toLowerCase() === normalizedEmail
+      );
       if (userExists) {
         setError("User with this email already exists.");
         return;
       }
 
-      const newUser = { email, password, fullName: fullName.trim() };
+      const newUser = { email: normalizedEmail, password, fullName: fullName.trim() };
       savedUsers.push(newUser);
       localStorage.setItem("users", JSON.stringify(savedUsers));
-      localStorage.setItem("currentUser", JSON.stringify(newUser));
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ email: newUser.email, fullName: newUser.fullName })
+      );
+      sessionStorage.removeItem("currentUser");
 
       // Перенаправляем на дашборд после регистрации
       navigate("/dashboard");
     } else {
       // Логика входа
       const user = savedUsers.find(
-        (u) => u.email === email && u.password === password
+        (u) => u.email.toLowerCase() === normalizedEmail && u.password === password
       );
       if (!user) {
         setError("Invalid email or password.");
         return;
       }
 
-      localStorage.setItem("currentUser", JSON.stringify(user));
+      const userSession = { email: user.email, fullName: user.fullName };
+      localStorage.removeItem("currentUser");
+      sessionStorage.removeItem("currentUser");
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", normalizedEmail);
+        localStorage.setItem("currentUser", JSON.stringify(userSession));
+      } else {
+        localStorage.removeItem("rememberedEmail");
+        sessionStorage.setItem("currentUser", JSON.stringify(userSession));
+      }
 
       // Перенаправляем на дашборд после входа
       navigate("/dashboard");
@@ -206,7 +236,36 @@ function Login() {
             <Icon src={arrowLeft} alt="" />
             Back to home
           </Link>
-          <span className="text-[12px] text-muted">Need help? ↗</span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setHelpOpen((open) => !open)}
+              aria-expanded={helpOpen}
+              aria-controls="login-help"
+              className="cursor-pointer text-[12px] text-muted transition-colors hover:text-emerald focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald"
+            >
+              Need help? <span aria-hidden="true">↗</span>
+            </button>
+            {helpOpen && (
+              <div
+                id="login-help"
+                role="tooltip"
+                className="absolute top-full right-0 z-20 mt-3 w-[min(300px,calc(100vw-40px))] rounded-card border border-emerald-border bg-elevated p-4 text-left shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+              >
+                <p className="mb-2 text-[10px] font-semibold tracking-[1.4px] text-emerald">
+                  QUICK HELP
+                </p>
+                <p className="text-[12px] font-medium text-ink">
+                  {isSignUp ? "Creating your account" : "Signing in"}
+                </p>
+                <p className="mt-1 text-[11px] leading-[1.6] text-muted">
+                  {isSignUp
+                    ? "Enter your name and email, then choose a password with at least 8 characters and a number. Accept the terms to create your account."
+                    : "Enter the email and password you used to create your account. Turn on Remember me to stay signed in on this device."}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex w-full flex-1 flex-col items-center">
@@ -290,7 +349,7 @@ function Login() {
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute top-1/2 right-[15px] -translate-y-1/2"
+                    className="absolute top-1/2 right-[15px] -translate-y-1/2 cursor-pointer"
                   >
                     <Icon src={eyeOff} alt="" />
                   </button>
@@ -302,12 +361,18 @@ function Login() {
                   Use at least 8 characters, including a number.
                 </p>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="flex size-4 items-center justify-center rounded-[4px] bg-emerald">
-                    <Icon src={rememberCheck} alt="" />
+                <label className="flex w-fit cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex size-4 items-center justify-center rounded-[4px] border border-border peer-checked:border-transparent peer-checked:bg-emerald peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-emerald">
+                    {rememberMe ? <Icon src={rememberCheck} alt="" /> : null}
                   </span>
                   <span className="text-[12px] text-muted">Remember me</span>
-                </div>
+                </label>
               )}
             </div>
 
@@ -331,7 +396,7 @@ function Login() {
 
             <button
               type="submit"
-              className="flex h-[50px] w-full items-center justify-center gap-2.5 rounded-control bg-emerald text-[14px] font-semibold text-emerald-ink hover:bg-[#7aedba]"
+              className="flex h-[50px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-control bg-emerald text-[14px] font-semibold text-emerald-ink hover:bg-[#7aedba]"
             >
               {isSignUp ? "Create your free account" : "Sign In"}
               <Icon src={arrowRight} alt="" />
@@ -339,7 +404,11 @@ function Login() {
 
             <p className="text-center text-[12px] text-muted">
               {isSignUp ? "Already have an account? " : "New to Velto? "}
-              <button type="button" onClick={switchMode} className="font-medium text-emerald">
+              <button
+                type="button"
+                onClick={switchMode}
+                className="cursor-pointer font-medium text-emerald"
+              >
                 {isSignUp ? "Sign In" : "Create an account"}
               </button>
             </p>
